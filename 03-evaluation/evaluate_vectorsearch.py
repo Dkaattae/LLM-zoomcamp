@@ -42,6 +42,14 @@ def evaluate(ground_truth, search_function):
         'mrr': mrr(relevance_total),
     }
 
+def minsearch_vector_search(vector, course):
+    return vindex.search(
+        vector,
+        filter_dict={'course': course},
+        num_results=5
+    )
+
+
 url_prefix = 'https://raw.githubusercontent.com/DataTalksClub/llm-zoomcamp/main/03-evaluation/'
 docs_url = url_prefix + 'search_evaluation/documents-with-ids.json'
 documents = requests.get(docs_url).json()
@@ -53,7 +61,7 @@ ground_truth = df_ground_truth.to_dict(orient='records')
 texts = []
 
 for doc in documents:
-    t = doc['question']
+    t = doc['question'] + ' ' + doc['text']
     texts.append(t)
 
 pipeline = make_pipeline(
@@ -65,7 +73,7 @@ X = pipeline.fit_transform(texts)
 vindex = VectorSearch(keyword_fields={'course'})
 vindex.fit(X, documents)
 
-vresults = evaluate(ground_truth, lambda q: vindex.search(query_vector=pipeline.transform([q['question']])))
+vresults = evaluate(ground_truth, lambda q: minsearch_vector_search(pipeline.transform([q['question']]), q['course']))
 
 print('hit rate: ', vresults['hit_rate'])
 print('mrr: ', vresults['mrr'])
